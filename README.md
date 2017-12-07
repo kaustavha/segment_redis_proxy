@@ -26,11 +26,16 @@ go test
 
 3 main components in MVP: http server or tcp server, LRU cache w/ timeout and backing redis
 
+Clients connect via http or tcp to proxy server  
+Proxy server caches any previously seen keys for faster lookup  
+Otherwise it relies on the backing Redis instance to look it up  
+
+
 LRU cache uses a hashmap and linkedlist. New items are added to the linkedlist and stored in the hashmap. Oldest items are removed from tail of LL when at capacity. All items also have a timeout started when they are added which will remove them after a set amount of time to ensure cache freshness.
 
 The redis proxy wraps the LRU cache, creating a web server. Creating a new redis proxy populates an optional function in the LRUCache, FetchMissing, which will defer to the backing redis to fetch missing keys
 
-Alternatively the TCP proxy wraps redis and doesnt rely on external libs only using the TCP protocol to communicate
+Alternatively the TCP proxy wraps redis and doesnt rely on external libs only using the TCP protocol to communicate and partially uses RESP
 
 ## Code walkthrough
 
@@ -55,3 +60,10 @@ lru_proxy -> Creates http server listening on 8080, backed by LRU cache backed b
 Best case get: O(1), overhead is incurred with http request  
 Worst case get: O(1+k), k is redis access complexity of O(1+n/b) where b is number of buckets
 
+## Time
+Around 30-60mins per file, relearning Go was slow going.
+
+## Unimplemented Reqs
+
+Sequential concurrent processing on http server, gos native server already handles concurrent requests and slowing it down doing sequential reads from a presently read only implementation didnt seem sound.  
+ 
